@@ -1,240 +1,316 @@
-// Central data store. Everything lives in one context, persisted to
-// AsyncStorage (localStorage on web). The shape is deliberately simple so a
-// future Supabase layer can replace `persist`/`hydrate` without UI changes.
+// Central data store — Supabase edition.
+// One context serves both roles:
+//   staff (teacher/admin): full data, every mutation writes through to Postgres
+//   student: a sanitized portal payload fetched via RPC (see supabase/schema.sql)
+// Row Level Security in the database is the real gatekeeper; this file is just
+// the courier.
 
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { uid, todayKey, addDays, fromKey, toKey } from './dates';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
+import { Platform } from 'react-native';
+import { supabase } from './supabase';
+import { uid, todayKey, addDays, fromKey } from './dates';
 
-const KEY = 'vedyacademy-data-v1';
 const Ctx = createContext(null);
 
-// ---------------- seed data ----------------
-function seed() {
-  const t = todayKey();
-  const students = [
-    {
-      id: 's-demo-1', name: 'Deniz Kaya', grade: '11th grade', school: 'Robert College',
-      city: 'Istanbul', phone: '+90 532 000 0000', parent: 'Aylin Kaya · +90 533 000 0000',
-      email: 'deniz@example.com', targetExam: 'SAT', hourlyRate: 900, lessonCost: 1350,
-      schoolLevel: 'High school', mode: 'In person', lessonLength: 90,
-      exams: { SAT: { current: 600, goal: 750 } },
-      notes: 'Strong reader, rushes grammar questions. Loves sci-fi — use it for reading practice.',
-      color: '#4C6FA5', archived: false, createdAt: t,
-      scoreHistory: [
-        { id: uid(), exam: 'SAT', score: 560, date: addDays(t, -120) },
-        { id: uid(), exam: 'SAT', score: 600, date: addDays(t, -30) },
-      ],
-      homework: [
-        { id: uid(), title: 'Reading passages 3 & 4 + error log', due: addDays(t, 2), done: false },
-        { id: uid(), title: 'Punctuation worksheet', due: addDays(t, -3), done: true },
-      ],
-      payments: [{ id: uid(), amount: 7200, date: addDays(t, -20), note: '8-lesson package' }],
-      sharedDocs: [], roadmap: null,
-    },
-    {
-      id: 's-demo-2', name: 'Lara Öztürk', grade: '12th grade', school: 'Üsküdar American Academy',
-      city: 'Istanbul', phone: '+90 532 111 1111', parent: 'Murat Öztürk · +90 533 111 1111',
-      email: 'lara@example.com', targetExam: 'IELTS', hourlyRate: 850, lessonCost: 850,
-      schoolLevel: 'High school', mode: 'In person', lessonLength: 60,
-      exams: { IELTS: { current: 6.5, goal: 7.5 } },
-      notes: 'Applying to UK universities. Writing Task 2 is the weak spot.',
-      color: '#3A8E8C', archived: false, createdAt: t,
-      scoreHistory: [{ id: uid(), exam: 'IELTS', score: 6.5, date: addDays(t, -45) }],
-      homework: [{ id: uid(), title: 'Task 2 essay: technology in education', due: addDays(t, 1), done: false }],
-      payments: [],
-      sharedDocs: [], roadmap: null,
-    },
-    {
-      id: 's-demo-3', name: 'Emir Demir', grade: '9th grade', school: 'TED Ankara',
-      city: 'Ankara (online)', phone: '+90 532 222 2222', parent: 'Selin Demir · +90 533 222 2222',
-      email: 'emir@example.com', targetExam: 'General', hourlyRate: 700, lessonCost: 700,
-      schoolLevel: 'Middle school', mode: 'Remote', lessonLength: 60,
-      exams: { General: { current: 60, goal: 85 } },
-      notes: 'Building general fluency before starting TOEFL prep next year.',
-      color: '#7A6FA5', archived: false, createdAt: t,
-      scoreHistory: [], homework: [], payments: [],
-      sharedDocs: [], roadmap: null,
-    },
-  ];
+const rowsToList = (rows) => (rows || []).map((r) => r.data);
 
-  // recurring weekly lessons
-  const recurring = [
-    { id: uid(), studentId: 's-demo-1', weekday: 4, time: '17:00', duration: 90, startDate: addDays(t, -60), endDate: null, overrides: {} },
-    { id: uid(), studentId: 's-demo-2', weekday: 2, time: '18:30', duration: 60, startDate: addDays(t, -45), endDate: null, overrides: {} },
-    { id: uid(), studentId: 's-demo-3', weekday: 6, time: '11:00', duration: 60, startDate: addDays(t, -30), endDate: null, overrides: {} },
-  ];
-
-  return { students, lessons: [], recurring, documents: [], seeded: true };
-}
-
-// ---------------- provider ----------------
 export function DataProvider({ children }) {
-  const [state, setState] = useState(null);
-  const saveTimer = useRef(null);
+  const [session, setSession] = useState(undefined); // undefined = still checking
+  const [profile, setProfile] = useState(null);
+  const [state, setState] = useState({ students: [], lessons: [], recurring: [], documents: [] });
+  const [portalStatus, setPortalStatus] = useState('loading');
+  const [profilesList, setProfilesList] = useState([]);
 
+  // ---- auth session tracking ----
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(KEY);
-        setState(raw ? JSON.parse(raw) : seed());
-      } catch (e) {
-        setState(seed());
-      }
-    })();
+    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // ---- load profile when signed in ----
+  const loadProfile = useCallback(async () => {
+    if (!session?.user) { setProfile(null); return null; }
+    const { data } = await supabase.from('profiles').select('*').eq('user_id', session.user.id).single();
+    setProfile(data ?? null);
+    return data ?? null;
+  }, [session?.user?.id]);
+
+  // ---- staff data load ----
+  const loadStaffData = useCallback(async () => {
+    const [st, le, re, docs, profs] = await Promise.all([
+      supabase.from('students').select('id,data'),
+      supabase.from('lessons').select('id,data'),
+      supabase.from('recurring').select('id,data'),
+      supabase.from('documents').select('id,data'),
+      supabase.from('profiles').select('*').order('created_at'),
+    ]);
+    setState({
+      students: rowsToList(st.data),
+      lessons: rowsToList(le.data),
+      recurring: rowsToList(re.data),
+      documents: rowsToList(docs.data),
+    });
+    setProfilesList(profs.data || []);
+    setPortalStatus('ready');
+  }, []);
+
+  // ---- student portal load ----
+  const loadPortal = useCallback(async () => {
+    const { data, error } = await supabase.rpc('get_student_portal');
+    if (error || !data || data.status !== 'ready') { setPortalStatus('pending'); return; }
+    setState({
+      students: [data.student],
+      lessons: data.lessons || [],
+      recurring: data.recurring || [],
+      documents: data.documents || [],
+    });
+    setPortalStatus('ready');
   }, []);
 
   useEffect(() => {
-    if (!state) return;
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      AsyncStorage.setItem(KEY, JSON.stringify(state)).catch(() => {});
-    }, 250);
-  }, [state]);
+    (async () => {
+      if (session === undefined) return;
+      if (!session) { setPortalStatus('signedOut'); setProfile(null); return; }
+      setPortalStatus('loading');
+      const prof = await loadProfile();
+      if (!prof) { setPortalStatus('pending'); return; }
+      if (prof.approved && (prof.role === 'teacher' || prof.role === 'admin')) {
+        await loadStaffData();
+      } else if (prof.approved && prof.role === 'student' && prof.student_id) {
+        await loadPortal();
+      } else {
+        setPortalStatus('pending');
+      }
+    })();
+  }, [session, loadProfile, loadStaffData, loadPortal]);
+
+  const isStaff = profile?.approved && (profile?.role === 'teacher' || profile?.role === 'admin');
+
+  // ---- write-through helpers (staff only) ----
+  const upsert = (table, id, data, extra = {}) =>
+    supabase.from(table).upsert({ id, data, updated_at: new Date().toISOString(), ...extra }).then(({ error }) => {
+      if (error) console.error(`${table} save failed:`, error.message);
+    });
+  const remove = (table, id) =>
+    supabase.from(table).delete().eq('id', id).then(({ error }) => {
+      if (error) console.error(`${table} delete failed:`, error.message);
+    });
 
   const api = useMemo(() => {
-    if (!state) return null;
-    const set = (fn) => setState((s) => fn(s));
+    const setLocal = (fn) => setState((s) => fn(s));
+    const getStudent = (id) => state.students.find((x) => x.id === id);
+
+    const saveStudent = (obj) => {
+      setLocal((s) => ({ ...s, students: s.students.map((st) => (st.id === obj.id ? obj : st)) }));
+      upsert('students', obj.id, obj);
+    };
 
     return {
       ...state,
 
-      // ----- students -----
+      // ---- auth surface ----
+      status: portalStatus, // 'loading' | 'signedOut' | 'pending' | 'ready'
+      session, profile, isStaff,
+      profilesList,
+      signInEmail: (email, password) => supabase.auth.signInWithPassword({ email, password }),
+      signUpEmail: (email, password, name) =>
+        supabase.auth.signUp({ email, password, options: { data: { full_name: name } } }),
+      signInGoogle: () =>
+        supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: Platform.OS === 'web' ? { redirectTo: window.location.origin } : {},
+        }),
+      signOut: () => supabase.auth.signOut(),
+      refresh: () => (isStaff ? loadStaffData() : loadPortal()),
+
+      // ---- account linking (staff) ----
+      linkStudentAccount: async (userId, studentId) => {
+        await supabase.from('profiles').update({ student_id: studentId, approved: true, role: 'student' }).eq('user_id', userId);
+        await loadStaffData();
+      },
+      unlinkAccount: async (userId) => {
+        await supabase.from('profiles').update({ student_id: null, approved: false }).eq('user_id', userId);
+        await loadStaffData();
+      },
+
+      // ---- student self-service ----
+      toggleMyHomework: async (hwId) => {
+        await supabase.rpc('toggle_my_homework', { hw_id: hwId });
+        await loadPortal();
+      },
+
+      // ---- students ----
       addStudent: (data) => {
         const student = {
           id: uid(), name: '', grade: '', school: '', city: '', phone: '', parent: '',
           email: '', targetExam: 'SAT', hourlyRate: 0, lessonCost: 0,
           schoolLevel: 'High school', mode: 'In person', lessonLength: 60,
           exams: {}, notes: '', curriculum: null,
-          color: '#2F6B54', archived: false, createdAt: todayKey(),
+          color: '#003C7C', archived: false, createdAt: todayKey(),
           scoreHistory: [], homework: [], payments: [], sharedDocs: [], roadmap: null,
           ...data,
         };
-        set((s) => ({ ...s, students: [...s.students, student] }));
+        setLocal((s) => ({ ...s, students: [...s.students, student] }));
+        upsert('students', student.id, student);
         return student.id;
       },
-      updateStudent: (id, patch) =>
-        set((s) => ({ ...s, students: s.students.map((st) => (st.id === id ? { ...st, ...patch } : st)) })),
-      deleteStudent: (id) =>
-        set((s) => ({
+      updateStudent: (id, patch) => {
+        const cur = getStudent(id);
+        if (!cur) return;
+        saveStudent({ ...cur, ...patch });
+      },
+      deleteStudent: (id) => {
+        setLocal((s) => ({
           ...s,
           students: s.students.filter((st) => st.id !== id),
           lessons: s.lessons.filter((l) => l.studentId !== id),
           recurring: s.recurring.filter((r) => r.studentId !== id),
-        })),
+        }));
+        remove('students', id);
+        supabase.from('lessons').delete().eq('student_id', id).then(() => {});
+        supabase.from('recurring').delete().eq('student_id', id).then(() => {});
+      },
+      pushToStudent: (id, field, item) => {
+        const cur = getStudent(id);
+        if (!cur) return;
+        saveStudent({ ...cur, [field]: [...(cur[field] || []), item] });
+      },
+      removeFromStudent: (id, field, itemId) => {
+        const cur = getStudent(id);
+        if (!cur) return;
+        saveStudent({ ...cur, [field]: (cur[field] || []).filter((x) => x.id !== itemId) });
+      },
+      toggleHomework: (id, hwId) => {
+        const cur = getStudent(id);
+        if (!cur) return;
+        saveStudent({
+          ...cur,
+          homework: cur.homework.map((h) => (h.id === hwId ? { ...h, done: !h.done } : h)),
+        });
+      },
 
-      // nested student helpers
-      pushToStudent: (id, field, item) =>
-        set((s) => ({
-          ...s,
-          students: s.students.map((st) => (st.id === id ? { ...st, [field]: [...(st[field] || []), item] } : st)),
-        })),
-      removeFromStudent: (id, field, itemId) =>
-        set((s) => ({
-          ...s,
-          students: s.students.map((st) =>
-            st.id === id ? { ...st, [field]: (st[field] || []).filter((x) => x.id !== itemId) } : st),
-        })),
-      toggleHomework: (id, hwId) =>
-        set((s) => ({
-          ...s,
-          students: s.students.map((st) =>
-            st.id === id
-              ? { ...st, homework: st.homework.map((h) => (h.id === hwId ? { ...h, done: !h.done } : h)) }
-              : st),
-        })),
-
-      // ----- one-off lessons -----
+      // ---- one-off lessons ----
       addLesson: (data) => {
         const lesson = { id: uid(), status: 'scheduled', note: '', duration: 60, ...data };
-        set((s) => ({ ...s, lessons: [...s.lessons, lesson] }));
+        setLocal((s) => ({ ...s, lessons: [...s.lessons, lesson] }));
+        upsert('lessons', lesson.id, lesson, { student_id: lesson.studentId });
         return lesson.id;
       },
-      updateLesson: (id, patch) =>
-        set((s) => ({ ...s, lessons: s.lessons.map((l) => (l.id === id ? { ...l, ...patch } : l)) })),
-      deleteLesson: (id) => set((s) => ({ ...s, lessons: s.lessons.filter((l) => l.id !== id) })),
+      updateLesson: (id, patch) => {
+        const cur = state.lessons.find((l) => l.id === id);
+        if (!cur) return;
+        const next = { ...cur, ...patch };
+        setLocal((s) => ({ ...s, lessons: s.lessons.map((l) => (l.id === id ? next : l)) }));
+        upsert('lessons', id, next, { student_id: next.studentId });
+      },
+      deleteLesson: (id) => {
+        setLocal((s) => ({ ...s, lessons: s.lessons.filter((l) => l.id !== id) }));
+        remove('lessons', id);
+      },
 
-      // ----- recurring lessons -----
+      // ---- recurring lessons ----
       addRecurring: (data) => {
         const rule = { id: uid(), overrides: {}, endDate: null, duration: 60, ...data };
-        set((s) => ({ ...s, recurring: [...s.recurring, rule] }));
+        setLocal((s) => ({ ...s, recurring: [...s.recurring, rule] }));
+        upsert('recurring', rule.id, rule, { student_id: rule.studentId });
         return rule.id;
       },
-      updateRecurring: (id, patch) =>
-        set((s) => ({ ...s, recurring: s.recurring.map((r) => (r.id === id ? { ...r, ...patch } : r)) })),
-      // per-date override: {status:'cancelled'} or {time,duration} or {status:'completed'}
-      overrideOccurrence: (ruleId, dateKey, patch) =>
-        set((s) => ({
-          ...s,
-          recurring: s.recurring.map((r) =>
-            r.id === ruleId
-              ? { ...r, overrides: { ...r.overrides, [dateKey]: { ...(r.overrides[dateKey] || {}), ...patch } } }
-              : r),
-        })),
-      endRecurring: (ruleId, dateKey) =>
-        set((s) => ({
-          ...s,
-          recurring: s.recurring.map((r) => (r.id === ruleId ? { ...r, endDate: dateKey } : r)),
-        })),
-      deleteRecurring: (ruleId) =>
-        set((s) => ({ ...s, recurring: s.recurring.filter((r) => r.id !== ruleId) })),
+      updateRecurring: (id, patch) => {
+        const cur = state.recurring.find((r) => r.id === id);
+        if (!cur) return;
+        const next = { ...cur, ...patch };
+        setLocal((s) => ({ ...s, recurring: s.recurring.map((r) => (r.id === id ? next : r)) }));
+        upsert('recurring', id, next, { student_id: next.studentId });
+      },
+      overrideOccurrence: (ruleId, dateKey, patch) => {
+        const cur = state.recurring.find((r) => r.id === ruleId);
+        if (!cur) return;
+        const next = { ...cur, overrides: { ...cur.overrides, [dateKey]: { ...(cur.overrides[dateKey] || {}), ...patch } } };
+        setLocal((s) => ({ ...s, recurring: s.recurring.map((r) => (r.id === ruleId ? next : r)) }));
+        upsert('recurring', ruleId, next, { student_id: next.studentId });
+      },
+      endRecurring: (ruleId, dateKey) => {
+        const cur = state.recurring.find((r) => r.id === ruleId);
+        if (!cur) return;
+        const next = { ...cur, endDate: dateKey };
+        setLocal((s) => ({ ...s, recurring: s.recurring.map((r) => (r.id === ruleId ? next : r)) }));
+        upsert('recurring', ruleId, next, { student_id: next.studentId });
+      },
+      deleteRecurring: (ruleId) => {
+        setLocal((s) => ({ ...s, recurring: s.recurring.filter((r) => r.id !== ruleId) }));
+        remove('recurring', ruleId);
+      },
 
-      // ----- documents -----
+      // ---- documents ----
       addDocument: (doc) => {
         const d = { id: uid(), addedAt: todayKey(), ...doc };
-        set((s) => ({ ...s, documents: [...s.documents, d] }));
+        setLocal((s) => ({ ...s, documents: [...s.documents, d] }));
+        upsert('documents', d.id, d);
         return d.id;
       },
-      updateDocument: (id, patch) =>
-        set((s) => ({ ...s, documents: s.documents.map((d) => (d.id === id ? { ...d, ...patch } : d)) })),
-      deleteDocument: (id) =>
-        set((s) => ({
+      updateDocument: (id, patch) => {
+        const cur = state.documents.find((d) => d.id === id);
+        if (!cur) return;
+        const next = { ...cur, ...patch };
+        setLocal((s) => ({ ...s, documents: s.documents.map((d) => (d.id === id ? next : d)) }));
+        upsert('documents', id, next);
+      },
+      deleteDocument: (id) => {
+        setLocal((s) => ({
           ...s,
           documents: s.documents.filter((d) => d.id !== id),
           students: s.students.map((st) => ({ ...st, sharedDocs: (st.sharedDocs || []).filter((x) => x !== id) })),
-        })),
-      shareDocuments: (studentId, docIds) =>
-        set((s) => ({
-          ...s,
-          students: s.students.map((st) =>
-            st.id === studentId
-              ? { ...st, sharedDocs: Array.from(new Set([...(st.sharedDocs || []), ...docIds])) }
-              : st),
-        })),
-      unshareDocument: (studentId, docId) =>
-        set((s) => ({
-          ...s,
-          students: s.students.map((st) =>
-            st.id === studentId ? { ...st, sharedDocs: (st.sharedDocs || []).filter((x) => x !== docId) } : st),
-        })),
+        }));
+        remove('documents', id);
+        state.students
+          .filter((st) => (st.sharedDocs || []).includes(id))
+          .forEach((st) => upsert('students', st.id, { ...st, sharedDocs: st.sharedDocs.filter((x) => x !== id) }));
+      },
+      shareDocuments: (studentId, docIds) => {
+        const cur = getStudent(studentId);
+        if (!cur) return;
+        saveStudent({ ...cur, sharedDocs: Array.from(new Set([...(cur.sharedDocs || []), ...docIds])) });
+      },
+      unshareDocument: (studentId, docId) => {
+        const cur = getStudent(studentId);
+        if (!cur) return;
+        saveStudent({ ...cur, sharedDocs: (cur.sharedDocs || []).filter((x) => x !== docId) });
+      },
 
-      importSnapshot: (json) => {
+      // ---- backup / restore ----
+      importSnapshot: async (json) => {
         const parsed = JSON.parse(json);
         if (parsed?.app !== 'vedyacademy' || !Array.isArray(parsed.students)) {
           throw new Error('This file is not a VedyAcademy backup.');
         }
-        setState({
-          students: parsed.students,
-          lessons: parsed.lessons || [],
-          recurring: parsed.recurring || [],
-          documents: parsed.documents || [],
-          seeded: true,
-        });
+        const now = new Date().toISOString();
+        await supabase.from('students').upsert(parsed.students.map((d) => ({ id: d.id, data: d, updated_at: now })));
+        await supabase.from('lessons').upsert((parsed.lessons || []).map((d) => ({ id: d.id, student_id: d.studentId, data: d, updated_at: now })));
+        await supabase.from('recurring').upsert((parsed.recurring || []).map((d) => ({ id: d.id, student_id: d.studentId, data: d, updated_at: now })));
+        await supabase.from('documents').upsert((parsed.documents || []).map((d) => ({ id: d.id, data: d, updated_at: now })));
+        await loadStaffData();
       },
-      resetAll: () => setState(seed()),
-      clearAll: () => setState({ students: [], lessons: [], recurring: [], documents: [], seeded: true }),
+      clearAll: async () => {
+        await Promise.all([
+          supabase.from('students').delete().neq('id', ''),
+          supabase.from('lessons').delete().neq('id', ''),
+          supabase.from('recurring').delete().neq('id', ''),
+          supabase.from('documents').delete().neq('id', ''),
+        ]);
+        await loadStaffData();
+      },
+      resetAll: () => {}, // no cloud seeding
     };
-  }, [state]);
+  }, [state, portalStatus, session, profile, profilesList, isStaff, loadStaffData, loadPortal]);
 
-  if (!api) return null;
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
 
 export const useData = () => useContext(Ctx);
 
-// ---------------- derived helpers ----------------
+// ---------------- pure derived helpers (unchanged) ----------------
 
-// All lesson occurrences on a date: one-offs + expanded recurring rules.
 export function lessonsOnDate(data, dateKey) {
   const weekday = fromKey(dateKey).getDay();
   const out = data.lessons
@@ -271,12 +347,10 @@ export function lessonsInRange(data, startKey, days) {
   return out;
 }
 
-// Money: hours delivered (past, not cancelled) * rate - payments
 export function balanceFor(data, student) {
   const t = todayKey();
   let hours = 0;
   let count = 0;
-  // look back up to 365 days
   const start = addDays(t, -365);
   let k = start;
   while (k <= t) {
@@ -288,7 +362,6 @@ export function balanceFor(data, student) {
     }
     k = addDays(k, 1);
   }
-  // Per-lesson pricing wins if set; otherwise fall back to hourly rate.
   const earned = student.lessonCost
     ? count * student.lessonCost
     : hours * (student.hourlyRate || 0);
@@ -296,8 +369,6 @@ export function balanceFor(data, student) {
   return { hours: Math.round(hours * 10) / 10, lessons: count, earned, paid, balance: earned - paid };
 }
 
-// Income summary for the current calendar month: value of delivered lessons
-// (earned) and payments received (collected).
 export function monthlyIncome(data) {
   const t = todayKey();
   const monthStart = t.slice(0, 8) + '01';
@@ -321,23 +392,22 @@ export function monthlyIncome(data) {
   return { earned: Math.round(earned), collected: Math.round(collected) };
 }
 
-// Full snapshot for export / import backups.
+export function nextLessonFor(data, studentId) {
+  const t = todayKey();
+  for (let i = 0; i < 60; i++) {
+    const k = addDays(t, i);
+    const found = lessonsOnDate(data, k).find(
+      (l) => l.studentId === studentId && l.status === 'scheduled',
+    );
+    if (found) return found;
+  }
+  return null;
+}
+
 export function exportSnapshot(data) {
   return JSON.stringify({
     app: 'vedyacademy', version: 1, exportedAt: new Date().toISOString(),
     students: data.students, lessons: data.lessons,
     recurring: data.recurring, documents: data.documents,
   }, null, 2);
-}
-
-export function nextLessonFor(data, studentId) {
-  const t = todayKey();
-  for (let i = 0; i < 60; i++) {
-    const k = addDays(t, i);
-    const found = lessonsOnDate(data, k).find(
-      (l) => l.studentId === studentId && l.status === 'scheduled' && (i > 0 || true),
-    );
-    if (found) return found;
-  }
-  return null;
 }

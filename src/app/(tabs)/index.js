@@ -1,28 +1,18 @@
 // Today — the home screen. What matters right now: today's lessons, homework
 // coming due, and anything that needs attention (unpaid balances).
 
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { View, Text, StyleSheet, Platform, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
-  Avatar,
-  Button,
-  Card,
-  Divider,
-  EmptyState,
-  ExamTag,
-  Hero,
-  IconBtn,
-  Screen,
-  SectionTitle,
-  Sheet,
-  StatusPill,
-  T
+  Screen, Card, SectionTitle, T, Avatar, StatusPill, EmptyState, Button, ExamTag,
+  IconBtn, Sheet, Divider, Hero, IconBadge,
 } from '../../components/ui';
-import { addDays, formatLong, formatShort, formatTime, todayKey } from '../../lib/dates';
-import { balanceFor, exportSnapshot, lessonsInRange, lessonsOnDate, monthlyIncome, useData } from '../../lib/store';
-import { colors, examMeta, fonts } from '../../lib/theme';
+import { examMeta } from '../../lib/theme';
+import { useData, lessonsOnDate, lessonsInRange, balanceFor, monthlyIncome, exportSnapshot } from '../../lib/store';
+import { colors, fonts } from '../../lib/theme';
+import { todayKey, addDays, formatTime, formatLong, formatShort } from '../../lib/dates';
 
 export default function Today() {
   const data = useData();
@@ -238,13 +228,19 @@ function SettingsSheet({ visible, onClose }) {
     <Sheet visible={visible} onClose={onClose} title="Settings & backup">
       <T.semi style={{ marginBottom: 4 }}>Back up your data</T.semi>
       <T.muted style={{ marginBottom: 10 }}>
-        Everything lives in this browser. Download a backup file regularly and keep it somewhere safe
-        (Google Drive, a USB stick). PDF files are not included — keep your originals.
+        Your data lives securely in the cloud now, but a periodic backup file never hurts.
+        PDF files are not included in backups — they stay in cloud storage.
       </T.muted>
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 4 }}>
         <Button title="Download backup" icon="download-outline" onPress={doExport} style={{ flex: 1 }} />
         <Button title="Restore backup" icon="folder-open-outline" kind="ghost" onPress={doImport} style={{ flex: 1 }} />
       </View>
+      <Divider />
+      <T.semi style={{ marginBottom: 4 }}>Account</T.semi>
+      <T.muted style={{ marginBottom: 10 }}>
+        Signed in as {data.profile?.email || 'unknown'} ({data.profile?.role}).
+      </T.muted>
+      <Button title="Sign out" icon="log-out-outline" kind="ghost" onPress={() => data.signOut()} />
       <Divider />
       <T.semi style={{ marginBottom: 4 }}>Danger zone</T.semi>
       <T.muted style={{ marginBottom: 10 }}>Start from a clean slate. This cannot be undone.</T.muted>

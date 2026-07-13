@@ -1,17 +1,17 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
-import { useData } from '../../lib/store';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
+import { useData } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
 
 const icon = (name, nameActive) => ({ color, focused }) => (
   <Ionicons name={focused ? nameActive : name} size={22} color={color} />
 );
 
-export default function TabsLayout() {
+export default function StudentTabs() {
   const data = useData();
-  if (data && !data.isStaff) return <Redirect href="/home" />;
+  if (data.isStaff) return <Redirect href="/" />;
   return (
     <Tabs
       screenOptions={{
@@ -27,10 +27,9 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 'sunny') }} />
-      <Tabs.Screen name="students" options={{ title: 'Students', tabBarIcon: icon('people-outline', 'people') }} />
-      <Tabs.Screen name="calendar" options={{ title: 'Calendar', tabBarIcon: icon('calendar-outline', 'calendar') }} />
-      <Tabs.Screen name="library" options={{ title: 'Library', tabBarIcon: icon('library-outline', 'library') }} />
+      <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: icon('sunny-outline', 'sunny') }} />
+      <Tabs.Screen name="plan" options={{ title: 'My plan', tabBarIcon: icon('map-outline', 'map') }} />
+      <Tabs.Screen name="docs" options={{ title: 'Documents', tabBarIcon: icon('library-outline', 'library') }} />
     </Tabs>
   );
 }
