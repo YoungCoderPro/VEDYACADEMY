@@ -46,16 +46,18 @@ export function PageHeader({ eyebrow, title, right, icon }) {
   );
 }
 
-// Hero banner — the signature element. Deep pine panel with soft "paper sun"
-// circles, used to open the Today screen (and anywhere a warm welcome fits).
+// Hero banner — the signature element. Deep navy panel with faint stationery
+// motifs (book, pencil, pen) watermarked in the background, used to open the
+// Today screen (and anywhere a warm welcome fits).
 export function Hero({ children, style }) {
   return (
     <View style={[styles.hero, style]}>
-      {/* decorative circles */}
-      <View style={[styles.heroCircle, { width: 220, height: 220, top: -90, right: -60, backgroundColor: '#FFFFFF14' }]} />
-      <View style={[styles.heroCircle, { width: 120, height: 120, bottom: -50, right: 70, backgroundColor: '#E9A23B2E' }]} />
-      <View style={[styles.heroCircle, { width: 90, height: 90, top: -30, left: -30, backgroundColor: '#FFFFFF10' }]} />
-      <View style={[styles.heroCircle, { width: 26, height: 26, top: 26, right: 130, backgroundColor: '#E9A23B66' }]} />
+      {/* decorative stationery watermarks */}
+      <View style={[styles.heroCircle, { width: 220, height: 220, top: -90, right: -60, backgroundColor: '#FFFFFF10' }]} />
+      <View style={[styles.heroCircle, { width: 120, height: 120, bottom: -50, right: 70, backgroundColor: '#B98B3E22' }]} />
+      <Ionicons name="book" size={92} color="#FFFFFF12" style={{ position: 'absolute', top: 10, right: 18, transform: [{ rotate: '-12deg' }] }} />
+      <Ionicons name="pencil" size={54} color="#FFFFFF14" style={{ position: 'absolute', bottom: 8, right: 130, transform: [{ rotate: '18deg' }] }} />
+      <Ionicons name="create-outline" size={38} color="#B98B3E33" style={{ position: 'absolute', top: 22, right: 128 }} />
       {children}
     </View>
   );

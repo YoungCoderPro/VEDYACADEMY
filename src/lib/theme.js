@@ -1,19 +1,21 @@
 // VedyAcademy design tokens
-// Palette: "study room" — porcelain paper, deep pine ink, marigold highlight,
-// with one exam color per test so scores are recognizable at a glance.
+// Palette: "academy ledger" — crisp white paper, deep navy ink (matched to
+// the app icon), and a brass accent for highlights, evoking gilt lettering
+// on a book spine or a pencil's brass ferrule. Exam identities keep their
+// own hues so purposes stay recognizable at a glance against the blue/white shell.
 
 export const colors = {
-  paper: '#F4F6F2',      // app background (porcelain with a green cast)
+  paper: '#F4F7FB',      // app background (crisp white with a cool blue cast)
   surface: '#FFFFFF',    // cards
-  ink: '#20302B',        // primary text (deep pine-slate)
-  muted: '#68766F',      // secondary text
-  faint: '#9AA69F',      // tertiary text
-  line: '#E2E8E0',       // hairlines & borders
-  pine: '#2F6B54',       // primary action
-  pineDark: '#234F3E',
-  pineSoft: '#E4EFE9',   // primary tint background
-  marigold: '#E9A23B',   // accent / highlights
-  marigoldSoft: '#FBF0DC',
+  ink: '#132540',        // primary text (deep navy-black)
+  muted: '#5B6B85',      // secondary text (blue-gray)
+  faint: '#94A2B8',      // tertiary text
+  line: '#E1E7F2',       // hairlines & borders
+  pine: '#003C7C',       // primary action — matches the app icon's navy exactly
+  pineDark: '#052A56',
+  pineSoft: '#E3EDF9',   // primary tint background
+  marigold: '#B98B3E',   // brass accent / highlights — pencil-ferrule gold
+  marigoldSoft: '#F5EEDD',
   danger: '#B4553E',
   dangerSoft: '#F7E6E1',
 
