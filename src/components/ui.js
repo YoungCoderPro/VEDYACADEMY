@@ -1,16 +1,12 @@
 // Shared UI kit. Everything visual and reusable lives here so screens stay
 // focused on behavior.
 
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  Modal, Platform,
-  Pressable, ScrollView,
-  StyleSheet,
-  Text, TextInput,
-  View,
+  View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet,
 } from 'react-native';
-import { colors, examMeta, fonts, radius, shadow } from '../lib/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, fonts, radius, shadow, examMeta } from '../lib/theme';
 
 const web = Platform.OS === 'web';
 

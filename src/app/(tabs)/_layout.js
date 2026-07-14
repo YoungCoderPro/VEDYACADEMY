@@ -1,6 +1,8 @@
 import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { useData } from '../../lib/store';
+import { View } from 'react-native';
+import { DemoBar } from '../../components/demo';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { colors, fonts } from '../../lib/theme';
@@ -11,8 +13,13 @@ const icon = (name, nameActive) => ({ color, focused }) => (
 
 export default function TabsLayout() {
   const data = useData();
-  if (data && !data.isStaff) return <Redirect href="/home" />;
+  if (data) {
+    if (data.status === 'signedOut' && !data.demoRole) return <Redirect href="/signin" />;
+    if (data.status === 'pending') return <Redirect href="/waiting" />;
+    if (!data.isStaff) return <Redirect href="/home" />;
+  }
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -27,10 +34,12 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 'sunny') }} />
+      <Tabs.Screen name="today" options={{ title: 'Today', tabBarIcon: icon('sunny-outline', 'sunny') }} />
       <Tabs.Screen name="students" options={{ title: 'Students', tabBarIcon: icon('people-outline', 'people') }} />
       <Tabs.Screen name="calendar" options={{ title: 'Calendar', tabBarIcon: icon('calendar-outline', 'calendar') }} />
       <Tabs.Screen name="library" options={{ title: 'Library', tabBarIcon: icon('library-outline', 'library') }} />
     </Tabs>
+    <DemoBar />
+    </View>
   );
 }

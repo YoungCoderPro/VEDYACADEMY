@@ -14,17 +14,81 @@ const Ctx = createContext(null);
 
 const rowsToList = (rows) => (rows || []).map((r) => r.data);
 
+// ---------------- demo data ----------------
+// Used by "Demo mode" on the sign-in page: explore the app with sample data,
+// nothing is written to the cloud.
+function demoSeed() {
+  const t = todayKey();
+  const students = [
+    {
+      id: 'demo-1', name: 'Deniz Kaya', grade: '11th grade', school: 'Robert College',
+      city: 'Istanbul', phone: '+90 532 000 0000', parent: 'Aylin Kaya · +90 533 000 0000',
+      email: 'deniz@example.com', targetExam: 'SAT', hourlyRate: 900, lessonCost: 1350,
+      schoolLevel: 'High school', mode: 'In person', lessonLength: 90,
+      exams: { SAT: { current: 600, goal: 750 } },
+      notes: 'Strong reader, rushes grammar questions. Loves sci-fi — use it for reading practice.',
+      color: '#4C6FA5', archived: false, createdAt: t, curriculum: null,
+      scoreHistory: [
+        { id: 'demo-sh1', exam: 'SAT', score: 560, date: addDays(t, -120) },
+        { id: 'demo-sh2', exam: 'SAT', score: 600, date: addDays(t, -30) },
+      ],
+      homework: [
+        { id: 'demo-hw1', title: 'Reading passages 3 & 4 + error log', due: addDays(t, 2), done: false },
+        { id: 'demo-hw2', title: 'Punctuation worksheet', due: addDays(t, -3), done: true },
+      ],
+      payments: [{ id: 'demo-p1', amount: 7200, date: addDays(t, -20), note: '8-lesson package' }],
+      sharedDocs: [], roadmap: null,
+    },
+    {
+      id: 'demo-2', name: 'Lara Öztürk', grade: '12th grade', school: 'Üsküdar American Academy',
+      city: 'Istanbul', phone: '+90 532 111 1111', parent: 'Murat Öztürk · +90 533 111 1111',
+      email: 'lara@example.com', targetExam: 'IELTS', hourlyRate: 850, lessonCost: 850,
+      schoolLevel: 'High school', mode: 'In person', lessonLength: 60,
+      exams: { IELTS: { current: 6.5, goal: 7.5 } },
+      notes: 'Applying to UK universities. Writing Task 2 is the weak spot.',
+      color: '#3A8E8C', archived: false, createdAt: t, curriculum: null,
+      scoreHistory: [{ id: 'demo-sh3', exam: 'IELTS', score: 6.5, date: addDays(t, -45) }],
+      homework: [{ id: 'demo-hw3', title: 'Task 2 essay: technology in education', due: addDays(t, 1), done: false }],
+      payments: [], sharedDocs: [], roadmap: null,
+    },
+    {
+      id: 'demo-3', name: 'Emir Demir', grade: '9th grade', school: 'TED Ankara',
+      city: 'Ankara (online)', phone: '+90 532 222 2222', parent: 'Selin Demir · +90 533 222 2222',
+      email: 'emir@example.com', targetExam: 'General', hourlyRate: 700, lessonCost: 700,
+      schoolLevel: 'Middle school', mode: 'Remote', lessonLength: 60,
+      exams: { General: { current: 60, goal: 85 } },
+      notes: 'Building general fluency before starting TOEFL prep next year.',
+      color: '#7A6FA5', archived: false, createdAt: t, curriculum: null,
+      scoreHistory: [], homework: [], payments: [], sharedDocs: [], roadmap: null,
+    },
+  ];
+  const recurring = [
+    { id: 'demo-r1', studentId: 'demo-1', weekday: 4, time: '17:00', duration: 90, startDate: addDays(t, -60), endDate: null, overrides: {} },
+    { id: 'demo-r2', studentId: 'demo-2', weekday: 2, time: '18:30', duration: 60, startDate: addDays(t, -45), endDate: null, overrides: {} },
+    { id: 'demo-r3', studentId: 'demo-3', weekday: 6, time: '11:00', duration: 60, startDate: addDays(t, -30), endDate: null, overrides: {} },
+  ];
+  return { students, lessons: [], recurring, documents: [] };
+}
+
 export function DataProvider({ children }) {
   const [session, setSession] = useState(undefined); // undefined = still checking
   const [profile, setProfile] = useState(null);
   const [state, setState] = useState({ students: [], lessons: [], recurring: [], documents: [] });
   const [portalStatus, setPortalStatus] = useState('loading');
   const [profilesList, setProfilesList] = useState([]);
+  const [demoRole, setDemoRole] = useState(null); // null | 'teacher' | 'student'
 
   // ---- auth session tracking ----
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s ?? null);
+      // After OAuth redirects back with tokens in the URL fragment, tidy the
+      // address bar once the session is captured.
+      if (Platform.OS === 'web' && s && window.location.hash.includes('access_token')) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -85,21 +149,38 @@ export function DataProvider({ children }) {
     })();
   }, [session, loadProfile, loadStaffData, loadPortal]);
 
-  const isStaff = profile?.approved && (profile?.role === 'teacher' || profile?.role === 'admin');
+  const realStaff = profile?.approved && (profile?.role === 'teacher' || profile?.role === 'admin');
+  const isStaff = demoRole ? demoRole === 'teacher' : realStaff;
 
-  // ---- write-through helpers (staff only) ----
-  const upsert = (table, id, data, extra = {}) =>
-    supabase.from(table).upsert({ id, data, updated_at: new Date().toISOString(), ...extra }).then(({ error }) => {
+  // ---- write-through helpers (staff only; no-ops in demo mode) ----
+  const upsert = (table, id, data, extra = {}) => {
+    if (demoRole) return Promise.resolve();
+    return supabase.from(table).upsert({ id, data, updated_at: new Date().toISOString(), ...extra }).then(({ error }) => {
       if (error) console.error(`${table} save failed:`, error.message);
     });
-  const remove = (table, id) =>
-    supabase.from(table).delete().eq('id', id).then(({ error }) => {
+  };
+  const remove = (table, id) => {
+    if (demoRole) return Promise.resolve();
+    return supabase.from(table).delete().eq('id', id).then(({ error }) => {
       if (error) console.error(`${table} delete failed:`, error.message);
     });
+  };
 
   const api = useMemo(() => {
     const setLocal = (fn) => setState((s) => fn(s));
     const getStudent = (id) => state.students.find((x) => x.id === id);
+
+    // Demo-student view only sees the first demo student's slice of the data.
+    let viewState = state;
+    if (demoRole === 'student' && state.students.length) {
+      const me = state.students[0];
+      viewState = {
+        students: [me],
+        lessons: state.lessons.filter((l) => l.studentId === me.id),
+        recurring: state.recurring.filter((r) => r.studentId === me.id),
+        documents: state.documents.filter((d) => (me.sharedDocs || []).includes(d.id)),
+      };
+    }
 
     const saveStudent = (obj) => {
       setLocal((s) => ({ ...s, students: s.students.map((st) => (st.id === obj.id ? obj : st)) }));
@@ -107,21 +188,43 @@ export function DataProvider({ children }) {
     };
 
     return {
-      ...state,
+      ...viewState,
 
       // ---- auth surface ----
-      status: portalStatus, // 'loading' | 'signedOut' | 'pending' | 'ready'
-      session, profile, isStaff,
-      profilesList,
+      status: demoRole ? 'ready' : portalStatus, // 'loading' | 'signedOut' | 'pending' | 'ready'
+      session,
+      profile: demoRole
+        ? { email: 'demo@vedyacademy.org', role: demoRole, display_name: 'Demo' }
+        : profile,
+      isStaff,
+      profilesList: demoRole ? [] : profilesList,
+
+      // ---- demo mode ----
+      demoRole,
+      enterDemo: (role) => { setState(demoSeed()); setDemoRole(role); },
+      switchDemoRole: () => setDemoRole((r) => (r === 'teacher' ? 'student' : 'teacher')),
+      exitDemo: () => {
+        setDemoRole(null);
+        setState({ students: [], lessons: [], recurring: [], documents: [] });
+        setPortalStatus('signedOut');
+      },
       signInEmail: (email, password) => supabase.auth.signInWithPassword({ email, password }),
       signUpEmail: (email, password, name) =>
         supabase.auth.signUp({ email, password, options: { data: { full_name: name } } }),
       signInGoogle: () =>
         supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: Platform.OS === 'web' ? { redirectTo: window.location.origin } : {},
+          options: Platform.OS === 'web' ? { redirectTo: window.location.origin + '/signin' } : {},
         }),
-      signOut: () => supabase.auth.signOut(),
+      signOut: () => {
+        if (demoRole) {
+          setDemoRole(null);
+          setState({ students: [], lessons: [], recurring: [], documents: [] });
+          setPortalStatus('signedOut');
+          return Promise.resolve();
+        }
+        return supabase.auth.signOut();
+      },
       refresh: () => (isStaff ? loadStaffData() : loadPortal()),
 
       // ---- account linking (staff) ----
@@ -136,6 +239,18 @@ export function DataProvider({ children }) {
 
       // ---- student self-service ----
       toggleMyHomework: async (hwId) => {
+        if (demoRole) {
+          const me = state.students[0];
+          if (!me) return;
+          setLocal((s) => ({
+            ...s,
+            students: s.students.map((st) =>
+              st.id === me.id
+                ? { ...st, homework: st.homework.map((h) => (h.id === hwId ? { ...h, done: !h.done } : h)) }
+                : st),
+          }));
+          return;
+        }
         await supabase.rpc('toggle_my_homework', { hw_id: hwId });
         await loadPortal();
       },
@@ -302,7 +417,7 @@ export function DataProvider({ children }) {
       },
       resetAll: () => {}, // no cloud seeding
     };
-  }, [state, portalStatus, session, profile, profilesList, isStaff, loadStaffData, loadPortal]);
+  }, [state, portalStatus, session, profile, profilesList, isStaff, demoRole, loadStaffData, loadPortal]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

@@ -9,7 +9,7 @@ import { useData } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../lib/theme';
 import { configured } from '../lib/supabase';
 
-export function LoginScreen() {
+export function LoginScreen({ footer }) {
   const data = useData();
   const [mode, setMode] = useState('signin'); // signin | signup
   const [name, setName] = useState('');
@@ -97,6 +97,7 @@ export function LoginScreen() {
           onPress={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo(''); }}
         />
       </View>
+      {footer}
     </Shell>
   );
 }

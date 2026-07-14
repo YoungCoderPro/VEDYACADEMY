@@ -3,6 +3,8 @@ import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 import { useData } from '../../lib/store';
+import { View } from 'react-native';
+import { DemoBar } from '../../components/demo';
 import { colors, fonts } from '../../lib/theme';
 
 const icon = (name, nameActive) => ({ color, focused }) => (
@@ -11,8 +13,13 @@ const icon = (name, nameActive) => ({ color, focused }) => (
 
 export default function StudentTabs() {
   const data = useData();
-  if (data.isStaff) return <Redirect href="/" />;
+  if (data) {
+    if (data.status === 'signedOut' && !data.demoRole) return <Redirect href="/signin" />;
+    if (data.status === 'pending') return <Redirect href="/waiting" />;
+    if (data.isStaff) return <Redirect href="/today" />;
+  }
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -31,5 +38,7 @@ export default function StudentTabs() {
       <Tabs.Screen name="plan" options={{ title: 'My plan', tabBarIcon: icon('map-outline', 'map') }} />
       <Tabs.Screen name="docs" options={{ title: 'Documents', tabBarIcon: icon('library-outline', 'library') }} />
     </Tabs>
+    <DemoBar />
+    </View>
   );
 }
