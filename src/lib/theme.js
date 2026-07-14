@@ -40,6 +40,7 @@ export const examMeta = {
   IELTS: { color: colors.ielts, soft: colors.ieltsSoft, min: 0, max: 9, unit: 'band', label: 'IELTS', scored: true, step: 0.5 },
   KET: { color: '#5E7D3E', soft: '#EBF1E2', min: 100, max: 150, unit: 'pts', label: 'KET (A2 Key)', scored: true, step: 1 },
   PET: { color: '#B0713F', soft: '#F6ECE2', min: 120, max: 170, unit: 'pts', label: 'PET (B1 Preliminary)', scored: true, step: 1 },
+  IB: { color: '#2E5E8C', soft: '#E6EDF5', min: 1, max: 7, unit: 'grade', label: 'IB English', scored: true, step: 1 },
   School: { color: colors.pine, soft: colors.pineSoft, min: 0, max: 100, unit: '%', label: 'School English', scored: true, step: 1 },
   Essays: { color: '#8A5F8A', soft: '#F2E9F2', min: 0, max: 0, unit: '', label: 'University essays', scored: false },
   General: { color: colors.general, soft: colors.generalSoft, min: 0, max: 100, unit: '%', label: 'General English', scored: true, step: 1 },
@@ -69,6 +70,7 @@ export const categoryMeta = {
   'ACT English': { icon: 'ribbon-outline', color: '#A5537A', soft: '#F5E7EF' },
   KET: { icon: 'balloon', color: '#5E7D3E', soft: '#EBF1E2' },
   PET: { icon: 'rocket', color: '#B0713F', soft: '#F6ECE2' },
+  'IB English': { icon: 'globe-outline', color: '#2E5E8C', soft: '#E6EDF5' },
   'University essays': { icon: 'create', color: '#8A5F8A', soft: '#F2E9F2' },
   'School English': { icon: 'school-outline', color: colors.pine, soft: colors.pineSoft },
   Grammar: { icon: 'construct', color: '#4C6FA5', soft: '#E7EDF6' },
@@ -96,7 +98,7 @@ export const shadow = {
 };
 
 export const DOC_CATEGORIES = [
-  'IELTS', 'TOEFL', 'SAT English', 'ACT English', 'KET', 'PET',
+  'IELTS', 'TOEFL', 'SAT English', 'ACT English', 'KET', 'PET', 'IB English',
   'University essays', 'School English', 'Grammar', 'Vocabulary', 'Reading',
   'Writing', 'Listening', 'Speaking', 'Elementary', 'Middle school',
   'High school', 'Homework', 'Practice tests', 'Other',

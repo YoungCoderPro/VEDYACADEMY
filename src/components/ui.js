@@ -1,12 +1,16 @@
 // Shared UI kit. Everything visual and reusable lives here so screens stay
 // focused on behavior.
 
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet,
+  Modal, Platform,
+  Pressable, ScrollView,
+  StyleSheet,
+  Text, TextInput,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow, examMeta } from '../lib/theme';
+import { colors, examMeta, fonts, radius, shadow } from '../lib/theme';
 
 const web = Platform.OS === 'web';
 
@@ -42,18 +46,12 @@ export function PageHeader({ eyebrow, title, right, icon }) {
   );
 }
 
-// Hero banner — the signature element. Deep navy panel with faint stationery
-// motifs (book, pencil, pen) watermarked in the background, used to open the
-// Today screen (and anywhere a warm welcome fits).
+// Hero banner — a composed navy panel with a single brass keyline. Quietly
+// formal; the content does the talking.
 export function Hero({ children, style }) {
   return (
     <View style={[styles.hero, style]}>
-      {/* decorative stationery watermarks */}
-      <View style={[styles.heroCircle, { width: 220, height: 220, top: -90, right: -60, backgroundColor: '#FFFFFF10' }]} />
-      <View style={[styles.heroCircle, { width: 120, height: 120, bottom: -50, right: 70, backgroundColor: '#B98B3E22' }]} />
-      <Ionicons name="book" size={92} color="#FFFFFF12" style={{ position: 'absolute', top: 10, right: 18, transform: [{ rotate: '-12deg' }] }} />
-      <Ionicons name="pencil" size={54} color="#FFFFFF14" style={{ position: 'absolute', bottom: 8, right: 130, transform: [{ rotate: '18deg' }] }} />
-      <Ionicons name="create-outline" size={38} color="#B98B3E33" style={{ position: 'absolute', top: 22, right: 128 }} />
+      <View style={styles.heroKeyline} />
       {children}
     </View>
   );
@@ -335,15 +333,17 @@ const styles = StyleSheet.create({
   },
   pageTitle: { fontFamily: fonts.displayBold, fontSize: 30, color: colors.ink, lineHeight: 36 },
   headerBadge: {
-    width: 52, height: 52, borderRadius: 18, backgroundColor: colors.pineSoft,
-    alignItems: 'center', justifyContent: 'center', marginRight: 14,
-    borderWidth: 1, borderColor: '#FFFFFF', ...shadow.card,
+    width: 46, height: 46, borderRadius: 12, backgroundColor: colors.pineSoft,
+    alignItems: 'center', justifyContent: 'center', marginRight: 13,
   },
   hero: {
-    backgroundColor: colors.pineDark, borderRadius: radius.xxl, padding: 22,
+    backgroundColor: colors.pineDark, borderRadius: radius.lg, padding: 22,
     overflow: 'hidden', ...shadow.card,
   },
-  heroCircle: { position: 'absolute', borderRadius: 999 },
+  heroKeyline: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    backgroundColor: colors.marigold,
+  },
   sectionTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   sectionBadge: {
     width: 28, height: 28, borderRadius: 9, backgroundColor: colors.pineSoft,

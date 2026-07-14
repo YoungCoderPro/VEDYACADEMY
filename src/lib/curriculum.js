@@ -4,7 +4,7 @@
 // library by category. Units are editable after generation: reorder isn't
 // needed for v1 but attach/detach docs, mark complete, and add custom units are.
 
-import { uid, todayKey } from './dates';
+import { todayKey, uid } from './dates';
 
 // Each unit: { title, objectives: [...], docCategories: [...] }
 // docCategories are matched against library document categories to auto-attach.
@@ -85,6 +85,16 @@ const TEMPLATES = {
     { title: 'Timed section practice', objectives: ['Full sections under real time', 'Guess-and-move strategy', 'Score tracking'], docCategories: ['Practice tests', 'ACT English'] },
     { title: 'Full test rehearsal', objectives: ['Weekly full timed tests', 'Error-log review', 'Weakest-area drills'], docCategories: ['Practice tests'] },
     { title: 'Final week', objectives: ['Light review only', 'Test-day routine', 'Pacing plan on a card'], docCategories: [] },
+  ],
+  IB: [
+    { title: 'Course map & assessment criteria', objectives: ['Understand the IB English assessment components', 'Review criteria descriptors: how examiners award marks', 'Audit current coursework and set term goals'], docCategories: ['IB English', 'Practice tests'] },
+    { title: 'Textual analysis foundations', objectives: ['Close reading: diction, tone, structure, imagery', 'Annotating unseen texts efficiently', 'Building an analytical vocabulary'], docCategories: ['IB English', 'Reading'] },
+    { title: 'Literary works in depth', objectives: ['Themes, context, and authorial choices in set works', 'Comparing works across the syllabus', 'Quotation banks worth memorizing'], docCategories: ['IB English', 'Reading'] },
+    { title: 'Paper 1: guided textual analysis', objectives: ['Structure for the analysis essay', 'Timed practice on unseen texts', 'Line of argument vs feature-spotting'], docCategories: ['IB English', 'Writing', 'Practice tests'] },
+    { title: 'Paper 2: comparative essay', objectives: ['Planning comparative arguments fast', 'Using works flexibly across questions', 'Timed essays with criteria-based feedback'], docCategories: ['IB English', 'Writing', 'Practice tests'] },
+    { title: 'Individual Oral preparation', objectives: ['Choosing extracts and global issue', 'Structuring the 10-minute oral', 'Recorded rehearsals with feedback'], docCategories: ['IB English', 'Speaking'] },
+    { title: 'Coursework polish', objectives: ['Drafting and revising written tasks/HL essay', 'Academic register and citation habits', 'Criteria self-check before submission'], docCategories: ['IB English', 'Writing'] },
+    { title: 'Final exam rehearsal', objectives: ['Full timed papers under real conditions', 'Error-log review after each', 'Final-week revision plan'], docCategories: ['Practice tests', 'IB English'] },
   ],
   General: [
     { title: 'Starting point', objectives: ['Level assessment (CEFR estimate)', 'Interests inventory — teach through what they love', 'Set 3 concrete goals'], docCategories: ['Practice tests'] },

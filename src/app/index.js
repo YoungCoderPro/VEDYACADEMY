@@ -1,28 +1,41 @@
-// Public landing page — the front door of vedyacademy.org.
-// No student data here: a promotional page about Vedya with a Sign in button.
+// Public landing page — vedyacademy.org.
+// Design intent: one respected teacher's practice, not a startup. White and
+// deep navy, serif authority, real credentials, no decorative noise.
 
-import React, { useRef } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Platform, Image, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, fonts, radius, shadow, examMeta } from '../lib/theme';
+import { useRouter } from 'expo-router';
+import React, { useRef } from 'react';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { colors, fonts, shadow } from '../lib/theme';
 
 const web = Platform.OS === 'web';
 
-const PROGRAMS = [
-  { icon: 'earth', title: 'IELTS', body: 'Band-focused preparation across all four papers, with weekly timed practice and examiner-style feedback.', color: examMeta.IELTS.color, soft: examMeta.IELTS.soft },
-  { icon: 'school', title: 'TOEFL', body: 'Structured training for every section, from note-taking systems to speaking templates that hold up under pressure.', color: examMeta.TOEFL.color, soft: examMeta.TOEFL.soft },
-  { icon: 'ribbon', title: 'SAT & ACT English', body: 'Grammar rules that repeat, evidence-based reading strategy, and pacing plans built from real practice tests.', color: examMeta.SAT.color, soft: examMeta.SAT.soft },
-  { icon: 'create', title: 'University application essays', body: 'From story mining to final polish — essays that sound like the student, not a template.', color: examMeta.Essays.color, soft: examMeta.Essays.soft },
-  { icon: 'balloon', title: 'Cambridge KET & PET', body: 'Confidence-first preparation for younger learners, keeping exams motivating instead of intimidating.', color: examMeta.KET.color, soft: examMeta.KET.soft },
-  { icon: 'library', title: 'School English & general fluency', body: 'Support tied directly to the school syllabus, plus reading, writing, and speaking that grows with the student.', color: examMeta.School.color, soft: examMeta.School.soft },
+const NAVY = '#052A56';
+const INK = '#132540';
+const BRASS = '#B98B3E';
+
+const EXAM_BADGES = ['IELTS', 'TOEFL iBT', 'SAT', 'ACT', 'Cambridge KET & PET', 'IB English'];
+
+const SCHOOLS = [
+  { name: 'Özel Üsküdar SEV', detail: 'English Language Teacher — 22 years' },
+  { name: 'Irmak Okulları', detail: 'English Language Teacher' },
+  { name: 'Istanbul International School', detail: 'English Language Teacher' },
 ];
 
-const APPROACH = [
-  { icon: 'person', title: 'Truly one-on-one', body: 'Every lesson plan, reading list, and homework set is built around one student — their level, their goals, their interests.' },
-  { icon: 'map', title: 'A roadmap, not just lessons', body: 'Each student gets a phased study plan with milestones, so families always know where things stand and what comes next.' },
-  { icon: 'trending-up', title: 'Progress you can see', body: 'Scores, homework, and curriculum progress are tracked lesson by lesson — improvement is measured, not guessed.' },
-  { icon: 'chatbubbles', title: 'In person or online', body: 'Lessons in Istanbul or remotely — the same materials, structure, and attention either way.' },
+const PROGRAMS = [
+  { title: 'IELTS', body: 'All four papers, band descriptors, and weekly timed practice — built around the score the student actually needs.' },
+  { title: 'TOEFL iBT', body: 'Section-by-section training: note-taking systems, speaking templates, and integrated writing that holds up under time pressure.' },
+  { title: 'SAT & ACT English', body: 'The grammar rules that repeat, evidence-based reading, and pacing strategy drawn from full timed practice tests.' },
+  { title: 'IB English', body: 'Paper 1 and Paper 2 essay technique, Individual Oral preparation, and coursework feedback against the actual criteria.' },
+  { title: 'Cambridge KET & PET', body: 'Confidence-first preparation for younger learners — exams as a milestone, not a source of dread.' },
+  { title: 'University application essays', body: 'From finding the story to the final read-aloud: essays that sound like the student, not a template.' },
+  { title: 'School English & general fluency', body: 'Support tied to the school syllabus — grammar, writing, and speaking that show up in report cards.' },
+];
+
+const STEPS = [
+  { n: '01', title: 'Assessment', body: 'A first meeting and level assessment: where the student stands, what the target is, and how much time there is to get there.' },
+  { n: '02', title: 'A personal roadmap', body: 'Every student gets a written, phased study plan with milestones — so the path from today\u2019s level to the goal is visible, not vague.' },
+  { n: '03', title: 'Weekly lessons & honest reporting', body: 'One-on-one lessons, tracked homework, and progress reports parents can actually read. Improvement is measured, never assumed.' },
 ];
 
 export default function Landing() {
@@ -30,171 +43,192 @@ export default function Landing() {
   const scrollRef = useRef(null);
   const sections = useRef({});
   const { width } = useWindowDimensions();
-  const narrow = width < 760;
+  const narrow = width < 780;
 
   const jump = (key) => {
     const y = sections.current[key];
-    if (scrollRef.current && y != null) scrollRef.current.scrollTo({ y: y - 70, animated: true });
+    if (scrollRef.current && y != null) scrollRef.current.scrollTo({ y: y - 64, animated: true });
   };
   const mark = (key) => (e) => { sections.current[key] = e.nativeEvent.layout.y; };
 
   return (
     <View style={styles.screen}>
-      {/* nav bar */}
+      {/* ---- nav ---- */}
       <View style={styles.nav}>
         <View style={styles.navInner}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable onPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Image source={require('../../assets/images/icon.png')} style={styles.navLogo} resizeMode="contain" />
             <Text style={styles.navBrand}>VedyAcademy</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: narrow ? 10 : 22 }}>
+          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: narrow ? 12 : 26 }}>
             {!narrow && (
               <>
                 <NavLink label="About" onPress={() => jump('about')} />
                 <NavLink label="Programs" onPress={() => jump('programs')} />
+                <NavLink label="How it works" onPress={() => jump('how')} />
                 <NavLink label="Contact" onPress={() => jump('contact')} />
               </>
             )}
-            <Pressable onPress={() => router.push('/signin')} style={({ hovered }) => [styles.signInBtn, hovered && { opacity: 0.9 }]}>
-              <Text style={styles.signInText}>Sign in</Text>
+            <Pressable onPress={() => router.push('/signin')} style={({ hovered }) => [styles.signInBtn, hovered && { backgroundColor: '#EDF2F9' }]}>
+              <Text style={styles.signInText}>Student sign in</Text>
             </Pressable>
           </View>
         </View>
       </View>
 
       <ScrollView ref={scrollRef} style={{ flex: 1 }}>
-        {/* hero */}
-        <View style={styles.hero}>
-          <View style={[styles.heroCircle, { width: 340, height: 340, top: -140, right: -80, backgroundColor: '#FFFFFF10' }]} />
-          <View style={[styles.heroCircle, { width: 160, height: 160, bottom: -70, left: -40, backgroundColor: '#B98B3E22' }]} />
-          <Ionicons name="book" size={120} color="#FFFFFF10" style={{ position: 'absolute', top: 30, right: 40, transform: [{ rotate: '-12deg' }] }} />
-          <Ionicons name="pencil" size={70} color="#FFFFFF12" style={{ position: 'absolute', bottom: 24, right: 190, transform: [{ rotate: '18deg' }] }} />
-
-          <View style={[styles.container, { paddingVertical: narrow ? 48 : 84 }]}>
-            <Text style={styles.heroEyebrow}>PRIVATE ENGLISH TUTORING · ISTANBUL & ONLINE</Text>
-            <Text style={[styles.heroTitle, narrow && { fontSize: 34, lineHeight: 42 }]}>
-              English, taught the way{'\n'}your child learns best.
-            </Text>
-            <Text style={styles.heroSub}>
-              One-on-one lessons with Vedya Zalma Almelek — an English teacher with more than
-              two decades in Istanbul's leading schools, now working with a small number of
-              private students on exams, essays, and real fluency.
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 26, flexWrap: 'wrap' }}>
-              <Pressable onPress={() => jump('contact')} style={({ hovered }) => [styles.ctaPrimary, hovered && { opacity: 0.92 }]}>
-                <Text style={styles.ctaPrimaryText}>Ask about lessons</Text>
-              </Pressable>
-              <Pressable onPress={() => jump('programs')} style={({ hovered }) => [styles.ctaGhost, hovered && { backgroundColor: '#FFFFFF14' }]}>
-                <Text style={styles.ctaGhostText}>See programs</Text>
-              </Pressable>
+        {/* ---- hero: split, on paper ---- */}
+        <View style={[styles.container, { paddingTop: narrow ? 40 : 72, paddingBottom: narrow ? 40 : 64 }]}>
+          <View style={{ flexDirection: narrow ? 'column' : 'row', gap: narrow ? 32 : 56, alignItems: narrow ? 'stretch' : 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.eyebrow}>PRIVATE ENGLISH TUTORING · ISTANBUL & ONLINE</Text>
+              <Text style={[styles.heroTitle, narrow && { fontSize: 34, lineHeight: 42 }]}>
+                Two decades of teaching English.{'\n'}One student at a time.
+              </Text>
+              <Text style={styles.heroSub}>
+                Vedya Zalma Almelek has taught English for more than twenty years in some of
+                Istanbul's most respected schools. She now works privately with a small number
+                of students each term — on exams, essays, and lasting fluency.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 26, flexWrap: 'wrap' }}>
+                <Pressable onPress={() => jump('contact')} style={({ hovered }) => [styles.ctaPrimary, hovered && { opacity: 0.92 }]}>
+                  <Text style={styles.ctaPrimaryText}>Enquire about lessons</Text>
+                </Pressable>
+                <Pressable onPress={() => jump('programs')} style={({ hovered }) => [styles.ctaSecondary, hovered && { backgroundColor: '#EDF2F9' }]}>
+                  <Text style={styles.ctaSecondaryText}>View programs</Text>
+                </Pressable>
+              </View>
             </View>
 
-            {/* stat strip */}
-            <View style={[styles.statRow, narrow && { flexDirection: 'column' }]}>
-              <Stat value="20+" label="years teaching English" />
-              <Stat value="3" label="leading Istanbul schools" />
-              <Stat value="6" label="exam & essay programs" />
-              <Stat value="1:1" label="every single lesson" />
-            </View>
-          </View>
-        </View>
-
-        {/* about */}
-        <View onLayout={mark('about')} style={[styles.container, styles.section]}>
-          <Text style={styles.sectionEyebrow}>ABOUT</Text>
-          <Text style={styles.sectionTitle}>Meet Vedya</Text>
-          <View style={[{ flexDirection: narrow ? 'column' : 'row', gap: 28, marginTop: 18 }]}>
-            <View style={styles.portraitCard}>
+            {/* portrait / credential card */}
+            <View style={[styles.portraitCard, narrow && { alignSelf: 'center' }]}>
               <View style={styles.portrait}>
                 <Text style={styles.portraitInitials}>VA</Text>
               </View>
               <Text style={styles.portraitName}>Vedya Zalma Almelek</Text>
               <Text style={styles.portraitRole}>English Language Teacher</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.body}>
-                Vedya has spent her career teaching English in some of Istanbul's most respected
-                schools — including 22 years at Özel Üsküdar SEV, along with Irmak Okulları and
-                Istanbul International School. That means thousands of hours in real classrooms,
-                with students of every level, age, and temperament.
-              </Text>
-              <Text style={[styles.body, { marginTop: 12 }]}>
-                Today she brings that experience to private, one-on-one tutoring: exam preparation
-                (IELTS, TOEFL, SAT, ACT, KET, PET), university application essays, and school
-                English support. Lessons are structured around a personal roadmap for each student —
-                with clear milestones, weekly plans, and honest progress tracking — because
-                families deserve to see the improvement, not just hope for it.
-              </Text>
-              <Text style={[styles.body, { marginTop: 12 }]}>
-                Warm with students, direct with parents, and relentless about the details that
-                move a score: that's the teaching style, in one sentence.
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* programs */}
-        <View style={{ backgroundColor: colors.pineSoft }}>
-          <View onLayout={mark('programs')} style={[styles.container, styles.section]}>
-            <Text style={styles.sectionEyebrow}>PROGRAMS</Text>
-            <Text style={styles.sectionTitle}>What students come for</Text>
-            <View style={styles.grid}>
-              {PROGRAMS.map((p) => (
-                <View key={p.title} style={styles.programCard}>
-                  <View style={[styles.programIcon, { backgroundColor: p.soft }]}>
-                    <Ionicons name={p.icon} size={22} color={p.color} />
-                  </View>
-                  <Text style={styles.cardTitle}>{p.title}</Text>
-                  <Text style={styles.cardBody}>{p.body}</Text>
+              <View style={styles.portraitRule} />
+              {SCHOOLS.map((s) => (
+                <View key={s.name} style={{ marginBottom: 8 }}>
+                  <Text style={styles.credName}>{s.name}</Text>
+                  <Text style={styles.credDetail}>{s.detail}</Text>
                 </View>
               ))}
             </View>
           </View>
         </View>
 
-        {/* approach */}
-        <View style={[styles.container, styles.section]}>
-          <Text style={styles.sectionEyebrow}>THE APPROACH</Text>
-          <Text style={styles.sectionTitle}>How lessons work</Text>
-          <View style={styles.grid}>
-            {APPROACH.map((a) => (
-              <View key={a.title} style={styles.approachCard}>
-                <View style={styles.approachIcon}>
-                  <Ionicons name={a.icon} size={19} color={colors.pine} />
-                </View>
-                <Text style={styles.cardTitle}>{a.title}</Text>
-                <Text style={styles.cardBody}>{a.body}</Text>
+        {/* ---- exam badge bar ---- */}
+        <View style={styles.badgeBar}>
+          <View style={[styles.container, { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 10, paddingVertical: 18 }]}>
+            <Text style={styles.badgeLead}>Preparation for</Text>
+            {EXAM_BADGES.map((b) => (
+              <View key={b} style={styles.examBadge}>
+                <Text style={styles.examBadgeText}>{b}</Text>
               </View>
             ))}
           </View>
         </View>
 
-        {/* contact */}
-        <View style={{ backgroundColor: colors.pineDark }}>
-          <View onLayout={mark('contact')} style={[styles.container, styles.section]}>
-            <Text style={[styles.sectionEyebrow, { color: colors.marigold }]}>CONTACT</Text>
-            <Text style={[styles.sectionTitle, { color: '#F4F7FB' }]}>Ask about a spot</Text>
-            <Text style={[styles.body, { color: '#C9D6E8', maxWidth: 560, marginTop: 8 }]}>
-              Vedya takes a limited number of private students each term. Reach out to ask about
-              availability, levels, and scheduling — in English or Turkish.
-            </Text>
-            <View style={{ flexDirection: narrow ? 'column' : 'row', gap: 14, marginTop: 22 }}>
-              <ContactRow icon="mail" text="hello@vedyacademy.org" />
-              <ContactRow icon="logo-whatsapp" text="+90 5xx xxx xx xx" />
-              <ContactRow icon="location" text="Istanbul · and online everywhere" />
+        {/* ---- about ---- */}
+        <View onLayout={mark('about')} style={[styles.container, styles.section]}>
+          <View style={{ flexDirection: narrow ? 'column' : 'row', gap: narrow ? 20 : 64 }}>
+            <View style={{ width: narrow ? '100%' : 260 }}>
+              <Text style={styles.eyebrow}>ABOUT</Text>
+              <Text style={styles.sectionTitle}>A teacher first</Text>
             </View>
-            <Text style={[styles.small, { color: '#8FA3C0', marginTop: 34 }]}>
-              Already a student or parent here? {' '}
-              <Text onPress={() => router.push('/signin')} style={{ color: colors.marigold, fontFamily: fonts.bodySemi }}>
-                Sign in to your portal →
+            <View style={{ flex: 1 }}>
+              <Text style={styles.body}>
+                Vedya's career has been spent in the classroom — including twenty-two years at
+                Özel Üsküdar SEV, and teaching posts at Irmak Okulları and Istanbul International
+                School. That is thousands of hours with real students of every level and age,
+                across the Turkish national curriculum, international programs, and the IB.
               </Text>
+              <Text style={[styles.body, { marginTop: 14 }]}>
+                Private tutoring is the same craft, concentrated: one student, one clear goal,
+                and a plan measured in weeks — whether the goal is an IELTS band, an SAT score,
+                an IB grade, a university essay, or simply English that finally feels natural.
+              </Text>
+              <Text style={[styles.body, { marginTop: 14 }]}>
+                Families work directly with Vedya — there is no agency, no rotating tutors, and
+                no script. Warm with students, direct with parents, and precise about the
+                details that move a result.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ---- programs ---- */}
+        <View style={{ backgroundColor: '#FFFFFF', borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line }}>
+          <View onLayout={mark('programs')} style={[styles.container, styles.section]}>
+            <Text style={styles.eyebrow}>PROGRAMS</Text>
+            <Text style={styles.sectionTitle}>What students come for</Text>
+            <View style={styles.programGrid}>
+              {PROGRAMS.map((p) => (
+                <View key={p.title} style={styles.programRow}>
+                  <View style={styles.programRule} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.programTitle}>{p.title}</Text>
+                    <Text style={styles.programBody}>{p.body}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* ---- how it works ---- */}
+        <View onLayout={mark('how')} style={[styles.container, styles.section]}>
+          <Text style={styles.eyebrow}>HOW IT WORKS</Text>
+          <Text style={styles.sectionTitle}>From first meeting to results</Text>
+          <View style={{ flexDirection: narrow ? 'column' : 'row', gap: 18, marginTop: 26 }}>
+            {STEPS.map((s) => (
+              <View key={s.n} style={styles.stepCard}>
+                <Text style={styles.stepNum}>{s.n}</Text>
+                <Text style={styles.stepTitle}>{s.title}</Text>
+                <Text style={styles.stepBody}>{s.body}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.parentNote}>
+            <Ionicons name="lock-closed" size={15} color={BRASS} style={{ marginRight: 9, marginTop: 2 }} />
+            <Text style={[styles.body, { flex: 1, fontSize: 14 }]}>
+              Every family receives access to a private portal: upcoming lessons, homework,
+              the study roadmap, shared materials, and progress — visible at any time.
             </Text>
           </View>
         </View>
 
-        {/* footer */}
+        {/* ---- contact ---- */}
+        <View style={{ backgroundColor: NAVY }}>
+          <View onLayout={mark('contact')} style={[styles.container, styles.section]}>
+            <View style={{ maxWidth: 640 }}>
+              <Text style={[styles.eyebrow, { color: BRASS }]}>CONTACT</Text>
+              <Text style={[styles.sectionTitle, { color: '#F4F7FB' }]}>Ask about a place</Text>
+              <Text style={[styles.body, { color: '#C2CFE2', marginTop: 10 }]}>
+                Vedya takes a limited number of private students each term. Write in English or
+                Turkish to ask about availability, levels, and scheduling.
+              </Text>
+              <View style={{ marginTop: 26, gap: 14 }}>
+                <ContactRow icon="mail-outline" text="hello@vedyacademy.org" />
+                <ContactRow icon="logo-whatsapp" text="+90 5xx xxx xx xx" />
+                <ContactRow icon="location-outline" text="Istanbul · in person or online" />
+              </View>
+              <Text style={[styles.small, { color: '#7E93B3', marginTop: 34 }]}>
+                Already a student or parent here?{' '}
+                <Text onPress={() => router.push('/signin')} style={{ color: BRASS, fontFamily: fonts.bodySemi }}>
+                  Sign in to your portal
+                </Text>
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ---- footer ---- */}
         <View style={styles.footer}>
-          <Text style={styles.small}>© {new Date().getFullYear()} VedyAcademy · English tutoring by Vedya Zalma Almelek</Text>
+          <Text style={styles.small}>
+            © {new Date().getFullYear()} VedyAcademy — English tutoring by Vedya Zalma Almelek, Istanbul
+          </Text>
         </View>
       </ScrollView>
     </View>
@@ -203,27 +237,16 @@ export default function Landing() {
 
 function NavLink({ label, onPress }) {
   return (
-    <Pressable onPress={onPress} style={({ hovered }) => [{ paddingVertical: 6 }, hovered && { opacity: 0.7 }]}>
+    <Pressable onPress={onPress} style={({ hovered }) => [{ paddingVertical: 6 }, hovered && { opacity: 0.65 }]}>
       <Text style={styles.navLink}>{label}</Text>
     </Pressable>
-  );
-}
-
-function Stat({ value, label }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
   );
 }
 
 function ContactRow({ icon, text }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <View style={styles.contactIcon}>
-        <Ionicons name={icon} size={16} color={colors.marigold} />
-      </View>
+      <Ionicons name={icon} size={17} color={BRASS} style={{ width: 30 }} />
       <Text style={[styles.body, { color: '#F4F7FB' }]}>{text}</Text>
     </View>
   );
@@ -231,84 +254,81 @@ function ContactRow({ icon, text }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.paper },
-  container: { width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: 22 },
+  container: { width: '100%', maxWidth: 1080, alignSelf: 'center', paddingHorizontal: 24 },
+
   nav: {
-    backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.line,
-    ...(web ? { position: 'sticky', top: 0, zIndex: 100 } : {}),
+    backgroundColor: '#FFFFFFF2', borderBottomWidth: 1, borderBottomColor: colors.line,
+    ...(web ? { position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(8px)' } : {}),
   },
   navInner: {
-    width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: 22,
-    paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%', maxWidth: 1080, alignSelf: 'center', paddingHorizontal: 24,
+    paddingVertical: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  navLogo: { width: 34, height: 34, borderRadius: 9, marginRight: 10 },
-  navBrand: { fontFamily: fonts.displayBold, fontSize: 19, color: colors.ink },
-  navLink: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
+  navLogo: { width: 30, height: 30, borderRadius: 7, marginRight: 10 },
+  navBrand: { fontFamily: fonts.displayBold, fontSize: 18, color: INK, letterSpacing: 0.2 },
+  navLink: { fontFamily: fonts.bodyMedium, fontSize: 14, color: '#44536E' },
   signInBtn: {
-    backgroundColor: colors.pine, paddingVertical: 9, paddingHorizontal: 18, borderRadius: radius.md,
-    ...shadow.card,
+    borderWidth: 1.5, borderColor: NAVY, paddingVertical: 8, paddingHorizontal: 16,
+    borderRadius: 8, backgroundColor: 'transparent',
   },
-  signInText: { fontFamily: fonts.bodySemi, fontSize: 14, color: '#fff' },
+  signInText: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: INK },
 
-  hero: { backgroundColor: colors.pineDark, overflow: 'hidden' },
-  heroCircle: { position: 'absolute', borderRadius: 999 },
-  heroEyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2.2, color: colors.marigold },
-  heroTitle: { fontFamily: fonts.displayBold, fontSize: 46, lineHeight: 54, color: '#F4F7FB', marginTop: 14 },
-  heroSub: { fontFamily: fonts.body, fontSize: 16, lineHeight: 24, color: '#C9D6E8', marginTop: 14, maxWidth: 560 },
-  ctaPrimary: { backgroundColor: colors.marigold, paddingVertical: 13, paddingHorizontal: 22, borderRadius: radius.md, ...shadow.card },
-  ctaPrimaryText: { fontFamily: fonts.bodySemi, fontSize: 15, color: '#2E230C' },
-  ctaGhost: { borderWidth: 1, borderColor: '#FFFFFF44', paddingVertical: 13, paddingHorizontal: 22, borderRadius: radius.md },
-  ctaGhostText: { fontFamily: fonts.bodySemi, fontSize: 15, color: '#F4F7FB' },
-  statRow: { flexDirection: 'row', gap: 12, marginTop: 38, flexWrap: 'wrap' },
-  stat: {
-    flexGrow: 1, flexBasis: 150, backgroundColor: '#FFFFFF12', borderWidth: 1, borderColor: '#FFFFFF22',
-    borderRadius: 16, paddingVertical: 14, paddingHorizontal: 16,
-  },
-  statValue: { fontFamily: fonts.display, fontSize: 28, color: '#FFFFFF' },
-  statLabel: { fontFamily: fonts.body, fontSize: 12.5, color: '#C9D6E8', marginTop: 2 },
-
-  section: { paddingVertical: 56 },
-  sectionEyebrow: { fontFamily: fonts.bodySemi, fontSize: 12, letterSpacing: 2, color: colors.pine },
-  sectionTitle: { fontFamily: fonts.displayBold, fontSize: 30, color: colors.ink, marginTop: 6 },
-  body: { fontFamily: fonts.body, fontSize: 15, lineHeight: 23, color: colors.ink },
-  small: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  eyebrow: { fontFamily: fonts.bodySemi, fontSize: 11.5, letterSpacing: 2.4, color: '#5B6B85' },
+  heroTitle: { fontFamily: fonts.displayBold, fontSize: 44, lineHeight: 54, color: INK, marginTop: 16 },
+  heroSub: { fontFamily: fonts.body, fontSize: 16.5, lineHeight: 26, color: '#44536E', marginTop: 16, maxWidth: 540 },
+  ctaPrimary: { backgroundColor: NAVY, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 8 },
+  ctaPrimaryText: { fontFamily: fonts.bodySemi, fontSize: 15, color: '#FFFFFF' },
+  ctaSecondary: { borderWidth: 1.5, borderColor: colors.line, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 8, backgroundColor: '#FFFFFF' },
+  ctaSecondaryText: { fontFamily: fonts.bodySemi, fontSize: 15, color: INK },
 
   portraitCard: {
-    backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.line,
-    padding: 22, alignItems: 'center', alignSelf: 'flex-start', ...shadow.card,
+    backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: colors.line,
+    padding: 26, width: 300, ...shadow.card,
   },
   portrait: {
-    width: 120, height: 120, borderRadius: 60, backgroundColor: colors.pine,
-    alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.marigold,
+    width: 96, height: 96, borderRadius: 48, backgroundColor: NAVY,
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'center',
   },
-  portraitInitials: { fontFamily: fonts.displayBold, fontSize: 40, color: '#fff' },
-  portraitName: { fontFamily: fonts.bodySemi, fontSize: 15.5, color: colors.ink, marginTop: 12 },
-  portraitRole: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, marginTop: 2 },
+  portraitInitials: { fontFamily: fonts.displayBold, fontSize: 32, color: '#fff' },
+  portraitName: { fontFamily: fonts.displayBold, fontSize: 17, color: INK, textAlign: 'center', marginTop: 14 },
+  portraitRole: { fontFamily: fonts.body, fontSize: 13, color: '#5B6B85', textAlign: 'center', marginTop: 2 },
+  portraitRule: { height: 1, backgroundColor: colors.line, marginVertical: 16 },
+  credName: { fontFamily: fonts.bodySemi, fontSize: 13.5, color: INK },
+  credDetail: { fontFamily: fonts.body, fontSize: 12.5, color: '#5B6B85', marginTop: 1 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 22 },
-  programCard: {
-    flexGrow: 1, flexBasis: 280, backgroundColor: colors.surface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.line, padding: 18, ...shadow.card,
+  badgeBar: { backgroundColor: '#FFFFFF', borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line },
+  badgeLead: { fontFamily: fonts.bodyMedium, fontSize: 13, color: '#5B6B85', marginRight: 6 },
+  examBadge: {
+    borderWidth: 1, borderColor: '#D5DDEA', borderRadius: 6,
+    paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#FBFCFE',
   },
-  programIcon: {
-    width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-  },
-  approachCard: {
-    flexGrow: 1, flexBasis: 220, backgroundColor: colors.surface, borderRadius: radius.lg,
-    borderWidth: 1, borderColor: colors.line, padding: 18, ...shadow.card,
-  },
-  approachIcon: {
-    width: 38, height: 38, borderRadius: 11, backgroundColor: colors.pineSoft,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-  },
-  cardTitle: { fontFamily: fonts.bodySemi, fontSize: 15.5, color: colors.ink, marginBottom: 5 },
-  cardBody: { fontFamily: fonts.body, fontSize: 13.5, lineHeight: 20, color: colors.muted },
+  examBadgeText: { fontFamily: fonts.bodySemi, fontSize: 12.5, color: '#33456B', letterSpacing: 0.4 },
 
-  contactIcon: {
-    width: 32, height: 32, borderRadius: 10, backgroundColor: '#FFFFFF14',
-    alignItems: 'center', justifyContent: 'center', marginRight: 10,
+  section: { paddingVertical: 64 },
+  sectionTitle: { fontFamily: fonts.displayBold, fontSize: 30, color: INK, marginTop: 8 },
+  body: { fontFamily: fonts.body, fontSize: 15.5, lineHeight: 25, color: '#33415C' },
+  small: { fontFamily: fonts.body, fontSize: 13, color: '#5B6B85' },
+
+  programGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 44, rowGap: 30, marginTop: 30 },
+  programRow: { flexDirection: 'row', flexBasis: 440, flexGrow: 1 },
+  programRule: { width: 3, borderRadius: 2, backgroundColor: BRASS, marginRight: 16, marginTop: 3, marginBottom: 3 },
+  programTitle: { fontFamily: fonts.displayBold, fontSize: 17.5, color: INK },
+  programBody: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21.5, color: '#44536E', marginTop: 4 },
+
+  stepCard: {
+    flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.line,
+    borderRadius: 12, padding: 22,
   },
+  stepNum: { fontFamily: fonts.display, fontSize: 15, color: BRASS, letterSpacing: 1 },
+  stepTitle: { fontFamily: fonts.displayBold, fontSize: 18, color: INK, marginTop: 8 },
+  stepBody: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21.5, color: '#44536E', marginTop: 6 },
+  parentNote: {
+    flexDirection: 'row', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: colors.line,
+    borderRadius: 12, padding: 16, marginTop: 22, alignItems: 'flex-start',
+  },
+
   footer: {
-    borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: 22, alignItems: 'center',
-    backgroundColor: colors.surface,
+    borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: 24, alignItems: 'center',
+    backgroundColor: colors.paper,
   },
 });
